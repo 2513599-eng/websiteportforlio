@@ -1,0 +1,85 @@
+/* ...existing code... */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;color:#e6f0ff}
+canvas#bg{position:fixed;inset:0;z-index:0;display:block}
+
+/* Nebula overlay */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:1; /* moved above the canvas so stars/meteors are beneath the sky overlay */
+  background:
+    radial-gradient(40% 30% at 10% 20%, rgba(88, 60, 155,0.25), transparent 15%),
+    radial-gradient(30% 25% at 90% 80%, rgba(12, 88, 140,0.20), transparent 12%),
+    radial-gradient(25% 20% at 60% 30%, rgba(200, 120, 220,0.12), transparent 12%);
+  mix-blend-mode: screen;
+  animation: drift 18s linear infinite;
+  filter: blur(30px) saturate(120%);
+  pointer-events:none;
+}
+
+@keyframes drift {
+  0%{transform:translate3d(0,0,0) rotate(0deg)}
+  50%{transform:translate3d(6%, -4%, 0) rotate(2deg)}
+  100%{transform:translate3d(0,0,0) rotate(0deg)}
+}
+
+.content{
+  position:relative;
+  z-index:2;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:40px;
+  text-align:center;
+}
+
+.card{
+  width: min(740px, 92%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius:18px;
+  padding:32px;
+  backdrop-filter: blur(8px) saturate(120%);
+  box-shadow: 0 8px 30px rgba(2,4,16,0.6);
+}
+
+.avatar{
+  width:120px;height:120px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.12);margin-bottom:18px;
+}
+
+h1{font-size:clamp(1.4rem, 3.6vw, 2.4rem);margin-bottom:8px}
+.bio{color:rgba(230,240,255,0.8);margin-bottom:18px}
+
+.actions{display:flex;gap:12px;justify-content:center;align-items:center}
+.btn{
+  background: linear-gradient(90deg,#6ee7f2 0%, #7c5cff 100%);
+  color:#021022;
+  border:none;padding:12px 18px;border-radius:12px;font-weight:600;
+  cursor:pointer;transition:transform .18s ease, box-shadow .18s ease;
+  box-shadow: 0 6px 20px rgba(124,92,255,0.18), inset 0 -2px 8px rgba(255,255,255,0.06);
+  position:relative;overflow:hidden;
+}
+.btn:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(124,92,255,0.22)}
+.btn.ghost{background:transparent;color:#dfeeff;border:1px solid rgba(255,255,255,0.06)}
+
+.btn:active{transform:translateY(-1px)}
+
+.ripple{
+  position:fixed;
+  width:20px;height:20px;border-radius:50%;
+  background:rgba(255,255,255,0.12);pointer-events:none;z-index:5;
+  transform:scale(0);animation:ripple .8s linear forwards;
+}
+@keyframes ripple{ to{transform:scale(20);opacity:0} }
+
+/* small responsive tweaks */
+@media (max-width:560px){
+  .card{padding:22px;border-radius:14px}
+  .avatar{width:96px;height:96px}
+  .actions{flex-direction:column}
+  .btn{width:100%}
+}
+/* ...existing code... */

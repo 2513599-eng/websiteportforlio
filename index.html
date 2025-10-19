@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>About Me — Interstellar</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="bg"></canvas>
+
+    <main class="content">
+        <div class="card">
+            <img class="avatar" src="anhluffy.jpg" alt="Your avatar">
+            <h1>Hello, I'm Thangdz</h1>
+            <p class="bio">^p^</p>
+            <div class="actions">
+                <button id="profileBtn" class="btn">View Profile</button>
+                <a class="btn ghost" href="#" id="contactBtn">Contact</a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+    // Simple starfield + meteors + interactivity
+    const canvas = document.getElementById('bg');
+    const ctx = canvas.getContext('2d');
+    let w = canvas.width = innerWidth;
+    let h = canvas.height = innerHeight;
+    const stars = [];
+    const meteors = [];
+    const STAR_COUNT = Math.min(160, Math.floor((w*h)/20000));
+
+    function rand(min, max){ return Math.random()*(max-min)+min; }
+
+    class Star {
+        constructor(){
+            this.reset();
+        }
+        reset(){
+            this.x = rand(0, w);
+            this.y = rand(0, h);
+            this.z = rand(0.3, 1);
+            this.r = this.z * rand(0.6, 1.8);
+            this.alpha = rand(0.2, 1);
+            this.twinkleSpeed = rand(0.002, 0.01);
+        }
+        update(mouse){
+            // parallax toward mouse
+            this.x += (mouse.x - w/2) * 0.0002 * (1/this.z);
+            this.y += (mouse.y - h/2) * 0.0002 * (1/this.z);
+            this.alpha += Math.sin(Date.now()*this.twinkleSpeed + this.r)*0.005;
+            if(this.alpha > 1.2) this.alpha = 1.2;
+            if(this.alpha < 0.1) this.alpha = 0.1;
+            if(this.x < -50 || this.x > w+50 || this.y < -50 || this.y > h+50) this.reset();
+        }
+        draw(){
+            ctx.beginPath();
+            const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r*6);
+            g.addColorStop(0, `rgba(255,255,255,${this.alpha})`);
+            g.addColorStop(0.4, `rgba(160,190,255,${this.alpha*0.25})`);
+            g.addColorStop(1, `rgba(0,0,0,0)`);
+            ctx.fillStyle = g;
+            ctx.arc(this.x, this.y, this.r*4, 0, Math.PI*2);
+            ctx.fill();
+        }
+    }
+
+    class Meteor {
+        constructor() { this.reset(); }
+        reset() {
+            // spawn near top-right area for diagonal down-left meteors
+            const edge = Math.random() < 0.6 ? 'right' : 'left';
+            if (edge === 'right') {
+                this.x = rand(w*0.6, w + 80);
+                this.y = rand(-120, h*0.25);
+                this.vx = -rand(6, 18);
+                this.vy = rand(3, 10);
+            } else {
+                this.x = rand(-80, w*0.4);
+                this.y = rand(-120, h*0.25);
+                this.vx = rand(6, 18);
+                this.vy = rand(3, 10);
+            }
+            this.speed = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+            this.length = rand(80, 220) * (this.speed / 12);
+            this.alpha = 0.95;
+            this.life = 0;
+            this.maxLife = rand(40, 140);
+            this.thickness = rand(1.2, 3.2);
+            this.color = `rgba(255, ${rand(180,230)|0}, ${rand(120,180)|0},`;
+        }
+        update(){
+            this.x += this.vx;
+            this.y += this.vy;
+            this.life++;
+            this.alpha -= 0.007 * (this.speed/8);
+            if (this.life > this.maxLife || this.alpha <= 0 || this.x < -300 || this.x > w+300 || this.y > h+200) {
+                // reset rarely to create bursts; otherwise remove
+                if (Math.random() < 0.12) this.reset();
+                else return false;
+            }
+            return true;
+        }
+        draw(){
+            // draw trail
+            const tx = this.x - this.vx * (this.length/this.speed);
+            const ty = this.y - this.vy * (this.length/this.speed);
+
+            const grad = ctx.createLinearGradient(this.x, this.y, tx, ty);
+            grad.addColorStop(0, this.color + (0.95*this.alpha) + ')');
+            grad.addColorStop(0.4, this.color + (0.55*this.alpha) + ')');
+            grad.addColorStop(1, this.color + (0.0) + ')');
+
+            ctx.save();
+            ctx.lineWidth = this.thickness;
+            ctx.strokeStyle = grad;
+            ctx.shadowBlur = 18;
+            ctx.shadowColor = `rgba(255,200,140,${0.6*this.alpha})`;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(tx, ty);
+            ctx.stroke();
+
+            // head glow
+            ctx.beginPath();
+            ctx.fillStyle = `rgba(255,255,240,${0.9*this.alpha})`;
+            ctx.arc(this.x, this.y, Math.max(1.8, this.thickness*2.2), 0, Math.PI*2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    for (let i = 0; i < STAR_COUNT; i++) stars.push(new Star());
+
+    const mouse = { x: w/2, y: h/2 };
+    addEventListener('mousemove', (e)=>{ mouse.x = e.clientX; mouse.y = e.clientY; });
+    addEventListener('resize', ()=>{ w = canvas.width = innerWidth; h = canvas.height = innerHeight; });
+
+    // spawn meteors occasionally
+    function maybeSpawnMeteor(){
+        // base chance per frame; adjust for density
+        if (Math.random() < 0.01) meteors.push(new Meteor());
+        // occasional burst
+        if (Math.random() < 0.002) {
+            const burstCount = 1 + Math.floor(rand(2,5));
+            for (let i=0;i<burstCount;i++) meteors.push(new Meteor());
+        }
+    }
+
+    function loop(){
+        ctx.clearRect(0,0,w,h);
+        // subtle gradient background for depth
+        const bgGrad = ctx.createLinearGradient(0,0,0,h);
+        bgGrad.addColorStop(0, '#020315');
+        bgGrad.addColorStop(1, '#000814');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0,0,w,h);
+
+        // meteors (draw before stars so stars appear on top)
+        maybeSpawnMeteor();
+        for (let i = meteors.length - 1; i >= 0; i--) {
+            const m = meteors[i];
+            if (!m.update()) { meteors.splice(i,1); continue; }
+            m.draw();
+        }
+
+        // draw stars
+        for(const s of stars){
+            s.update(mouse);
+            s.draw();
+        }
+        requestAnimationFrame(loop);
+    }
+    loop();
+
+    // Button interactions
+    const profileBtn = document.getElementById('profileBtn');
+    const contactBtn = document.getElementById('contactBtn');
+
+    profileBtn.addEventListener('click', ()=> {
+        // Replace URL with your profile (GitHub, LinkedIn, portfolio...)
+        window.open('https://www.youtube.com/watch?v=xvFZjo5PgG0&list=RDxvFZjo5PgG0&start_radio=1', '_blank', 'noopener');
+    });
+
+    contactBtn.addEventListener('click', (e)=>{
+        e.preventDefault();
+        // simple mailto or modal could be added
+        window.location.href = 'mailto:2513599@dlu.edu.vn';
+    });
+
+    // small ripple effect on click
+    document.addEventListener('click', (e)=>{
+        const el = document.createElement('span');
+        el.className = 'ripple';
+        el.style.left = (e.clientX - 10) + 'px';
+        el.style.top = (e.clientY - 10) + 'px';
+        document.body.appendChild(el);
+        setTimeout(()=> el.remove(), 800);
+    });
+    </script>
+</body>
+</html>
